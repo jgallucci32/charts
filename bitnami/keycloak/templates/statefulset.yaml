@@ -74,22 +74,6 @@ spec:
           {{- end }}
           {{- if .Values.command }}
           command: {{- include "common.tplvalues.render" (dict "value" .Values.command "context" $) | nindent 12 }}
-          {{- else if .Values.auth.tls.enabled }}
-          {{- $fullname := include "keycloak.fullname" . }}
-          command:
-            - /bin/bash
-            - -ec
-            - |
-              ID="${MY_POD_NAME#"{{ $fullname }}-"}"
-              if [[ -f "/certs/keycloak.truststore.jks" ]] && [[ -f "/certs/keycloak-${ID}.keystore.jks" ]]; then
-                  mkdir -p /opt/bitnami/keycloak/certs
-                  cp "/certs/keycloak.truststore.jks" "/opt/bitnami/keycloak/certs/keycloak.truststore.jks"
-                  cp "/certs/keycloak-${ID}.keystore.jks" "/opt/bitnami/keycloak/certs/keycloak.keystore.jks"
-              else
-                  echo "Couldn't find the expected Java Key Stores (JKS) files! They are mandatory when encryption via TLS is enabled."
-                  exit 1
-              fi
-              exec /opt/bitnami/scripts/keycloak/entrypoint.sh /opt/bitnami/scripts/keycloak/run.sh
           {{- end }}
           {{- if .Values.args }}
           args: {{- include "common.tplvalues.render" (dict "value" .Values.args "context" $) | nindent 12 }}
@@ -158,7 +142,7 @@ spec:
             {{- end }}
             {{- if .Values.auth.tls.enabled }}
             - name: certificates
-              mountPath: /certs
+              mountPath: /opt/bitnami/keycloak/certs
               readOnly: true
             {{- end }}
             {{- if or .Values.initdbScriptsConfigMap .Values.initdbScripts }}
@@ -181,7 +165,7 @@ spec:
         - name: certificates
           secret:
             secretName: {{ printf "%s" (tpl .Values.auth.tls.jksSecret $) }}
-            defaultMode: 256
+            defaultMode: 420
         {{- end }}
         {{- if or .Values.initdbScriptsConfigMap .Values.initdbScripts }}
         - name: custom-init-scripts
